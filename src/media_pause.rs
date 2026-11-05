@@ -24,7 +24,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 /// Whether this platform can pause other apps' media.
-pub const SUPPORTED: bool = cfg!(any(any(target_os = "linux", target_os = "freebsd"), windows));
+pub const SUPPORTED: bool = cfg!(any(target_os = "linux", target_os = "freebsd", windows));
 
 /// Keeps other apps' media paused until dropped.
 #[must_use = "media resumes as soon as the hold is dropped"]
@@ -341,7 +341,7 @@ mod platform {
     }
 }
 
-#[cfg(not(any(any(target_os = "linux", target_os = "freebsd"), windows)))]
+#[cfg(not(any(target_os = "linux", target_os = "freebsd", windows)))]
 mod platform {
     /// macOS offers no public API to pause or resume other apps' media.
     pub struct Players;

@@ -2399,7 +2399,7 @@ impl App {
     }
 
     /// The macOS menu bar recolours its template icon by itself.
-    #[cfg(not(any(any(target_os = "linux", target_os = "freebsd"), windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "freebsd", windows)))]
     fn panel_is_dark(&self) -> Option<bool> {
         None
     }
@@ -9580,7 +9580,7 @@ impl App {
                     // Decorations are fixed when a window is made. Replace
                     // the window, keeping the chat, the link and any call:
                     // the shell opens the next one at once.
-                    if cfg!(any(windows, any(target_os = "linux", target_os = "freebsd"))) && !self.window_hidden {
+                    if cfg!(any(windows, target_os = "linux", target_os = "freebsd")) && !self.window_hidden {
                         self.reopen = true;
                         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
@@ -12065,7 +12065,7 @@ impl ClipboardReader {
     }
 }
 
-#[cfg(any(any(target_os = "linux", target_os = "freebsd"), test))]
+#[cfg(any(target_os = "linux", target_os = "freebsd", test))]
 fn native_clipboard_files(bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
     let text = std::str::from_utf8(bytes)
         .map_err(|_| "the clipboard's file list is not UTF-8".to_owned())?;
@@ -12082,7 +12082,7 @@ fn native_clipboard_files(bytes: &[u8]) -> Result<Vec<PathBuf>, String> {
         .collect())
 }
 
-#[cfg(any(any(target_os = "linux", target_os = "freebsd"), test))]
+#[cfg(any(target_os = "linux", target_os = "freebsd", test))]
 fn native_clipboard_image(bytes: &[u8]) -> Result<(usize, usize, Vec<u8>), String> {
     let image = image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
         .map_err(|error| error.to_string())?
@@ -18095,7 +18095,7 @@ mod tests {
         assert!(!app.settings.custom_titlebar, "off by default");
         app.apply(Action::SetCustomTitlebar(true), &ctx);
         assert!(app.settings.custom_titlebar);
-        let replaced = cfg!(any(windows, any(target_os = "linux", target_os = "freebsd")));
+        let replaced = cfg!(any(windows, target_os = "linux", target_os = "freebsd"));
         assert_eq!(app.reopen, replaced);
         assert_eq!(app.closed() == Closed::Reopen, replaced);
 
