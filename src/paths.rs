@@ -400,7 +400,7 @@ fn restrict_directory(_path: &Path) -> std::io::Result<()> {
 fn runtime_dir(project: &ProjectDirs, state: &Path) -> PathBuf {
     // Flatpak gives each sandbox a private runtime directory and shares only
     // this one between instances of the app.
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", target_os = "freebsd"))]
     if let (Some(runtime), Some(id)) = (
         project.runtime_dir().and_then(Path::parent),
         std::env::var_os("FLATPAK_ID"),
