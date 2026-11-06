@@ -441,7 +441,7 @@ fn rgb_to_i420(data: &[u8], width: usize, height: usize, bgr: bool) -> Option<I4
 }
 
 /// Video4Linux, read in Rust through linuxvideo.
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "freebsd"))]
 mod backend {
     use super::{Mode, Pixel};
     use linuxvideo::format::{FrameIntervals, FrameSizes, PixFormat, PixelFormat};
@@ -483,6 +483,7 @@ mod backend {
 
     /// The video capture nodes, named by their card. A camera's metadata node
     /// does not capture video and is left out.
+    #[cfg(target_os = "linux")]
     pub fn list() -> Vec<(String, String)> {
         let Ok(devices) = linuxvideo::list() else {
             return Vec::new();
@@ -498,6 +499,38 @@ mod backend {
                     return None;
                 }
                 let path = device.path().ok()?;
+                Some((
+                    path.to_string_lossy().into_owned(),
+                    capabilities.card().to_owned(),
+                ))
+            })
+            .collect();
+        found.sort();
+        found
+    }
+
+    /// FreeBSD has no `/proc/self/fd`, which `linuxvideo` reads to learn a
+    /// device's path, so list the `/dev/video*` nodes directly.
+    #[cfg(target_os = "freebsd")]
+    pub fn list() -> Vec<(String, String)> {
+        let Ok(entries) = std::fs::read_dir("/dev") else {
+            return Vec::new();
+        };
+        let mut found: Vec<(String, String)> = entries
+            .flatten()
+            .filter_map(|entry| {
+                let path = entry.path();
+                if !path.file_name()?.to_str()?.starts_with("video") {
+                    return None;
+                }
+                let device = Device::open(&path).ok()?;
+                let capabilities = device.capabilities().ok()?;
+                if !capabilities
+                    .device_capabilities()
+                    .contains(CapabilityFlags::VIDEO_CAPTURE)
+                {
+                    return None;
+                }
                 Some((
                     path.to_string_lossy().into_owned(),
                     capabilities.card().to_owned(),
@@ -643,39 +676,6 @@ mod backend {
             assert_eq!(pixel(format), Some(Pixel::I420));
             assert_eq!(fourcc(Pixel::I420), format);
         }
-    }
-}
-
-/// FreeBSD has no camera backend yet.
-#[cfg(target_os = "freebsd")]
-mod backend {
-    use super::{Mode, Pixel};
-
-    pub fn list() -> Vec<(String, String)> {
-        Vec::new()
-    }
-
-    pub struct Camera {
-        mode: Mode,
-    }
-
-    impl Camera {
-        pub fn open(_id: &str, _budget: (usize, usize), _fps: u32) -> Result<Self, String> {
-            Err("cameras are not supported on FreeBSD yet".to_owned())
-        }
-
-        pub fn mode(&self) -> Mode {
-            self.mode
-        }
-
-        pub fn read<R>(
-            &mut self,
-            _convert: impl FnOnce(Pixel, &[u8], usize, usize, usize) -> R,
-        ) -> Result<R, String> {
-            Err("cameras are not supported on FreeBSD yet".to_owned())
-        }
-
-        pub fn stop(&mut self) {}
     }
 }
 
